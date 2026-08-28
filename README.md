@@ -46,6 +46,7 @@ Only `cover*.jpg` files are considered, and only the oldest three unposted image
 - An Instagram account
 - `instagrapi`
 - Optional: OpenAI account and `OPENAI_API_KEY` if you use `--generate-text`
+ - Optional: Pillow (installed via package deps) for EXIF-aware rotation handling
 
 The current `instagrapi` release supports Python 3.10+ and its current documentation recommends the persistent `load_settings()` -> `login()` -> `dump_settings()` session pattern used by this project.
 
@@ -345,4 +346,8 @@ If you use environment variables for credentials, remember that shell history an
 
 ## License
 
-This small wrapper is provided without warranty. `instagrapi` is a separate project with its own license and terms.
+ This small wrapper is provided without warranty. `instagrapi` is a separate project with its own license and terms.
+
+## Image Orientation (EXIF)
+
+Some photos carry an EXIF orientation flag instead of being physically rotated. The tool now auto-applies EXIF orientation before upload, writing a temporary JPEG to ensure correct on-platform rotation.

@@ -45,6 +45,7 @@ Only `cover*.jpg` files are considered, and only the oldest three unposted image
 - Python 3.12
 - An Instagram account
 - `instagrapi`
+- Optional: OpenAI account and `OPENAI_API_KEY` if you use `--generate-text`
 
 The current `instagrapi` release supports Python 3.10+ and its current documentation recommends the persistent `load_settings()` -> `login()` -> `dump_settings()` session pattern used by this project.
 
@@ -132,6 +133,44 @@ ig-post /path/to/directory --dry-run
 ```
 
 This shows the files that would be selected without logging into Instagram or uploading anything.
+
+### Generate Title/Caption/Hashtags (optional)
+
+You can ask the tool to generate per-image Instagram text using OpenAI. This is off by default; the tool works normally without it.
+
+Requirements:
+
+- Set `OPENAI_API_KEY` in your environment
+
+Usage:
+
+```bash
+export OPENAI_API_KEY=sk-...
+ig-post /path/to/directory --generate-text
+```
+
+What it does per selected image:
+
+- Generates a short Title (first line)
+- Generates a 1–2 sentence Caption
+- Generates about 10 relevant hashtags (trimmed to Instagram’s 30-tag limit if you override)
+
+The final Instagram caption field is composed as:
+
+```
+Title
+
+Caption text
+
+#tag1 #tag2 #tag3 ...
+```
+
+Notes:
+
+- Model: defaults to `gpt-4o-mini` for image understanding and text. You can override with `OPENAI_MODEL`.
+- The tool trims content to stay under Instagram’s ~2,200-character caption limit.
+- Generated text is persisted in `~/.config/ig-post/posted.json` next to each posted image’s entry.
+- On any generation error, the tool falls back to the normal directory-based caption and continues.
 
 ### Maximum images
 
@@ -232,6 +271,8 @@ My trip to Ireland 2026
 ```
 
 Hyphens are intentionally left unchanged.
+
+When `--generate-text` is enabled, the per-image generated text replaces this base caption for that image only. The base caption is still used as a hint for generation and as a fallback.
 
 ## Conservative API behavior
 

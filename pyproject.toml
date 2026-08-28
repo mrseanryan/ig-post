@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "instagrapi>=2.18.18,<3",
+    "openai>=1.30,<2",
 ]
 
 [project.scripts]

@@ -1,6 +1,6 @@
 # ig-post
 
-Small Python 3.12 CLI for posting selected JPGs from a directory to a personal Instagram account using `instagrapi`.
+Small Python 3.12 CLI for posting selected JPGs from a directory to a personal Instagram account using `instagrapi` using AI generated captions and tags.
 
 > **Important:** `instagrapi` uses Instagram's unofficial/private API. This project is intended for low-volume, personal automation. It is deliberately conservative about posting frequency and stops rather than aggressively retrying when Instagram throttles or challenges the client.
 
@@ -11,11 +11,12 @@ Given a directory, `ig-post`:
 1. Finds `.jpg` files whose names start with a configurable prefix.
 2. Sorts them by file modification time, oldest first.
 3. Uses SHA-256 hashes to remember images already posted.
-4. Posts at most **3 images per run** by default.
-5. Waits at least **2 minutes between images** by default, with a small random addition.
-6. Generates the caption from the directory name, replacing `_` with spaces.
-7. Records each successful upload immediately, so an interrupted run resumes safely.
-8. Persists the Instagram session in `~/.config/ig-post/session.json`.
+4. Optionally uses AI (OpenAI) to generate suitable tags and captions.
+5. Posts at most **3 images per run** by default.
+6. Waits at least **2 minutes between images** by default, with a small random addition.
+7. Generates the caption from the directory name, replacing `_` with spaces.
+8. Records each successful upload immediately, so an interrupted run resumes safely.
+9. Persists the Instagram session in `~/.config/ig-post/session.json`.
 
 Example:
 

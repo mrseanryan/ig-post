@@ -4,7 +4,6 @@ import os
 import random
 import sys
 import time
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -18,12 +17,14 @@ from instagrapi.exceptions import (
     PleaseWaitFewMinutes,
 )
 
-from PIL import Image, ImageOps
+from PIL import Image
+from util_image import prepare_image_for_upload
 
 
 CONFIG_DIR = Path.home() / ".config" / "ig-post"
 SESSION_FILE = CONFIG_DIR / "session.json"
 STATE_FILE = CONFIG_DIR / "posted.json"
+CONFIG_FILE = CONFIG_DIR / "config.json"
 
 
 def load_json(path: Path, default):
@@ -117,23 +118,6 @@ def login() -> Client:
     return client
 
 
-def prepare_image_for_upload(src: Path) -> Path:
-    """
-    Open the image and apply EXIF orientation so the upload appears correctly.
-    Always writes a temporary JPEG and returns its path.
-    Caller is responsible for removing the temporary file.
-    """
-    with Image.open(src) as im:
-        # Apply EXIF orientation
-        im2 = ImageOps.exif_transpose(im)
-        if im2.mode not in ("RGB", "L"):
-            im2 = im2.convert("RGB")
-
-        tmp = tempfile.NamedTemporaryFile(prefix="igp_", suffix=".jpg", delete=False)
-        tmp_path = Path(tmp.name)
-        tmp.close()
-        im2.save(tmp_path, format="JPEG", quality=95, optimize=True)
-        return tmp_path
 
 
 def format_mtime(path: Path) -> str:
@@ -149,6 +133,7 @@ def post_images(
     default_caption: str,
     state: dict,
     min_delay: float,
+    copyright_text: Optional[str] = None,
 ) -> bool:
     """
     Post images sequentially.
@@ -175,7 +160,7 @@ def post_images(
         # Prepare oriented temp image
         temp_path = None
         try:
-            temp_path = prepare_image_for_upload(image)
+            temp_path = prepare_image_for_upload(image, copyright_text=copyright_text)
         except Exception as exc:
             print(f"Warning: could not prepare image (orientation): {image} ({exc})")
             # Fall back to original path

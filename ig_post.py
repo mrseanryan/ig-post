@@ -15,11 +15,13 @@ from util_instagram import (
     CONFIG_DIR,
     SESSION_FILE,
     STATE_FILE,
+    CONFIG_FILE,
     load_json,
     save_json,
     login,
     post_images,
 )
+from util_image import prepare_image_to_path
 from util_gen_text import (
     generate_text_for_pending,
     first_line,
@@ -144,6 +146,25 @@ def main() -> int:
         ),
     )
 
+    parser.add_argument(
+        "--copyright",
+        metavar="TEXT",
+        help=(
+            "Overlay copyright text at bottom-right of each image. "
+            "If omitted, falls back to ~/.config/ig-post/config.json 'copyright_text' if present."
+        ),
+    )
+
+    parser.add_argument(
+        "--save-prepared",
+        metavar="DIR",
+        type=Path,
+        help=(
+            "Prepare images locally (EXIF orientation + optional overlay) and save to DIR. "
+            "Skips Instagram login and upload. Prints the saved paths."
+        ),
+    )
+
     args = parser.parse_args()
 
     directory = args.directory.expanduser().resolve()
@@ -193,6 +214,14 @@ def main() -> int:
     state = load_json(
         STATE_FILE,
         {},
+    )
+
+    # Load optional runtime config
+    config = load_json(CONFIG_FILE, {})
+    copyright_text = (
+        args.copyright
+        if args.copyright is not None
+        else config.get("copyright_text")
     )
 
     print()
@@ -260,7 +289,7 @@ def main() -> int:
             (image, file_hash, None) for (image, file_hash) in pending
         ]
 
-    if args.dry_run:
+    if args.dry_run and not args.save_prepared:
         print()
         print("DRY RUN — nothing will be uploaded.")
         print()
@@ -280,6 +309,31 @@ def main() -> int:
 
     print()
 
+    # If requested, only prepare images locally and exit
+    if args.save_prepared:
+        out_dir = args.save_prepared.expanduser().resolve()
+        out_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Preparing images to: {out_dir}")
+
+        for image, file_hash, generated in pending_with_text:
+            rel = image.relative_to(directory)
+            dst = out_dir / (image.stem + ".prepared.jpg")
+            try:
+                saved = prepare_image_to_path(
+                    image,
+                    dst,
+                    copyright_text=copyright_text,
+                )
+                print(f"  PREPARED  {rel} -> {saved}")
+            except Exception as exc:
+                print(
+                    f"Error: failed to prepare {rel}: {exc}",
+                    file=sys.stderr,
+                )
+                return 1
+
+        return 0
+
     try:
         client = login()
     except Exception as exc:
@@ -297,6 +351,7 @@ def main() -> int:
         default_caption=base_caption,
         state=state,
         min_delay=args.min_delay,
+        copyright_text=copyright_text,
     )
 
     return 0 if success else 1

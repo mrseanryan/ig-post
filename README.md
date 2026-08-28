@@ -136,6 +136,29 @@ ig-post /path/to/directory --dry-run
 
 This shows the files that would be selected without logging into Instagram or uploading anything.
 
+### Prepare Images Only (no posting)
+
+If you want to preview how images will look after EXIF orientation and the optional copyright overlay, save the prepared JPEGs locally and skip posting:
+
+```bash
+ig-post /path/to/directory --save-prepared ./out
+```
+
+With overlay:
+
+```bash
+ig-post /path/to/directory --save-prepared ./out \
+  --copyright "© 2026 Your Name"
+```
+
+Behavior:
+
+- Applies EXIF orientation first
+- Applies the optional copyright overlay next
+- Writes prepared files as `<original>.prepared.jpg` into the target directory
+- Prints the saved file paths
+- Skips Instagram login and upload entirely
+
 ### Generate Title/Caption/Hashtags (optional)
 
 You can ask the tool to generate per-image Instagram text using OpenAI. This is off by default; the tool works normally without it.
@@ -173,6 +196,33 @@ Notes:
 - The tool trims content to stay under Instagram’s ~2,200-character caption limit.
 - Generated text is persisted in `~/.config/ig-post/posted.json` next to each posted image’s entry.
 - On any generation error, the tool falls back to the normal directory-based caption and continues.
+
+### Copyright Overlay (optional)
+
+Add a small copyright mark at the bottom-right of each image during upload. The overlay is applied after EXIF orientation, saved into a temporary JPEG, and then uploaded.
+
+Usage (CLI override):
+
+```bash
+ig-post /path/to/directory --copyright "© 2026 Your Name"
+```
+
+Or set it once in a config file:
+
+```jsonc
+// ~/.config/ig-post/config.json
+{
+  "copyright_text": "© 2026 Your Name"
+}
+```
+
+Notes:
+
+- The overlay uses a dark semi-transparent rectangle and white text with a black border for legibility.
+- Text size scales with image height (about 3.5% of height, clamped to a sensible range) after EXIF orientation.
+ - You can preview and iterate using `--save-prepared` to avoid posting during adjustments.
+- The default font is used to avoid external font dependencies.
+- If the overlay fails for any reason, the image is uploaded without the overlay.
 
 ### Maximum images
 
@@ -351,4 +401,4 @@ If you use environment variables for credentials, remember that shell history an
 
 ## Image Orientation (EXIF)
 
-Some photos carry an EXIF orientation flag instead of being physically rotated. The tool now auto-applies EXIF orientation before upload, writing a temporary JPEG to ensure correct on-platform rotation.
+Some photos carry an EXIF orientation flag instead of being physically rotated. The tool auto-applies EXIF orientation before upload, writing a temporary JPEG to ensure correct on-platform rotation. If the copyright overlay is enabled, it is applied after orientation.

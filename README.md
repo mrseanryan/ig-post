@@ -136,6 +136,12 @@ ig-post /path/to/directory --dry-run
 
 This shows the files that would be selected without logging into Instagram or uploading anything.
 
+Use `--verbose` to show full paths and, when `--generate-text` is enabled, the generated title/caption/hashtags per selected image:
+
+```bash
+ig-post /path/to/directory --dry-run --generate-text --verbose
+```
+
 ### Prepare Images Only (no posting)
 
 If you want to preview how images will look after EXIF orientation and the optional copyright overlay, save the prepared JPEGs locally and skip posting:
@@ -158,6 +164,8 @@ Behavior:
 - Writes prepared files as `<original>.prepared.jpg` into the target directory
 - Prints the saved file paths
 - Skips Instagram login and upload entirely
+
+Add `--verbose` to print both the original and saved file paths and, when text generation is enabled, the generated title/caption/hashtags for each prepared image.
 
 ### Generate Title/Caption/Hashtags (optional)
 

@@ -133,6 +133,7 @@ def post_images(
     default_caption: str,
     state: dict,
     min_delay: float,
+    verbose: bool = False,
     copyright_text: Optional[str] = None,
 ) -> bool:
     """
@@ -156,6 +157,24 @@ def post_images(
             if isinstance(generated, dict)
             else None
         ) or default_caption
+
+        if verbose:
+            # Print full absolute path and generated details if available
+            try:
+                abs_path = str(image.resolve())
+            except Exception:
+                abs_path = str(image)
+            print(f"    Path:     {abs_path}")
+            if isinstance(generated, dict) and generated:
+                title = generated.get("title", "")
+                body = generated.get("caption", "")
+                hashtags = generated.get("hashtags", []) or []
+                print(f"    Title:    {title}")
+                print(f"    Caption:  {body}")
+                if hashtags:
+                    print("    Hashtags: " + " ".join(f"#{t}" for t in hashtags))
+            else:
+                print(f"    Caption:  {caption}")
 
         # Prepare oriented temp image
         temp_path = None

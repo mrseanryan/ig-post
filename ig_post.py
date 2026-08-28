@@ -165,6 +165,14 @@ def main() -> int:
         ),
     )
 
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help=(
+            "Print per-image details: full file path and generated text/caption"
+        ),
+    )
+
     args = parser.parse_args()
 
     directory = args.directory.expanduser().resolve()
@@ -297,9 +305,14 @@ def main() -> int:
         for image, file_hash, generated in pending_with_text:
             rel = image.relative_to(directory)
             print(f"  WOULD POST  {rel} ({format_mtime(image)})")
+            if args.verbose:
+                print(f"    Path:     {str(image.resolve())}")
             if generated:
                 print(f"    Title:    {generated.get('title','')}")
-                print(f"    Caption:  {first_line(generated.get('caption',''))}")
+                if args.verbose:
+                    print(f"    Caption:  {generated.get('caption','')}")
+                else:
+                    print(f"    Caption:  {first_line(generated.get('caption',''))}")
                 hashtags = generated.get("hashtags", [])
                 if hashtags:
                     hashtag_line = " ".join(f"#{t}" for t in hashtags[:IG_MAX_HASHTAGS])
@@ -325,6 +338,16 @@ def main() -> int:
                     copyright_text=copyright_text,
                 )
                 print(f"  PREPARED  {rel} -> {saved}")
+                if args.verbose:
+                    print(f"    Path:     {str(image.resolve())}")
+                    print(f"    Saved:    {str(saved)}")
+                    if generated:
+                        print(f"    Title:    {generated.get('title','')}")
+                        print(f"    Caption:  {generated.get('caption','')}")
+                        hashtags = generated.get("hashtags", [])
+                        if hashtags:
+                            hashtag_line = " ".join(f"#{t}" for t in hashtags[:IG_MAX_HASHTAGS])
+                            print(f"    Hashtags: {hashtag_line}")
             except Exception as exc:
                 print(
                     f"Error: failed to prepare {rel}: {exc}",
@@ -351,6 +374,7 @@ def main() -> int:
         default_caption=base_caption,
         state=state,
         min_delay=args.min_delay,
+        verbose=args.verbose,
         copyright_text=copyright_text,
     )
 

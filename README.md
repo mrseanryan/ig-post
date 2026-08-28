@@ -52,9 +52,18 @@ The current `instagrapi` release supports Python 3.10+ and its current documenta
 
 Create a virtual environment:
 
+Ubuntu:
+
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
+```
+
+Windows:
+
+```bash
+python -m venv .venv
+.venv/Scripts/activate
 ```
 
 Install the project:

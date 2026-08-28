@@ -7,19 +7,19 @@ from PIL import Image, ImageOps
 
 
 def _load_scaled_font(img_width: int, img_height: int, text: str):
-    """Load a scalable TrueType font sized to target height.
+    """Load a scalable TrueType font sized to target width.
 
+    Targets approximately 30% of image width for the rendered text.
     Tries Pillow-bundled DejaVuSans or common system fonts.
-    Returns (font, stroke_width, is_ttf).
-    If TTF is unavailable, returns default font and is_ttf=False.
+    Returns (font, stroke_width, is_ttf). Falls back to default font if TTF unavailable.
     """
     from PIL import ImageFont, Image, ImageDraw
     import PIL
 
-    # Bounds for sizes as a fraction of height (target ~4% of height)
-    target_h = max(18, int(img_height * 0.04))
+    # Establish size bounds relative to height; we will target width in search
     min_size = max(12, int(img_height * 0.02))
     max_size = max(min_size + 4, int(img_height * 0.10))
+    target_w = max(36, int(img_width * 0.30))
 
     # Find bundled/system fonts
     pil_dir = Path(PIL.__file__).resolve().parent
@@ -74,7 +74,7 @@ def _load_scaled_font(img_width: int, img_height: int, text: str):
 
     from PIL import ImageFont, ImageDraw
 
-    # Binary search for size
+    # Binary search for size maximizing font size while keeping width <= target_w
     lo, hi = min_size, max_size
     best_size = min_size
     while lo <= hi:
@@ -83,7 +83,7 @@ def _load_scaled_font(img_width: int, img_height: int, text: str):
         if h == 0:
             hi = mid - 1
             continue
-        if h <= target_h and w <= int(img_width * 0.95):
+        if w <= target_w:
             best_size = mid
             lo = mid + 1
         else:
@@ -186,7 +186,7 @@ def add_copyright_overlay(im: Image.Image, text: str) -> Image.Image:
                 draw.text((tx + dx, ty + dy), text, fill=(0, 0, 0, 255), font=font)
             draw.text((tx, ty), text, fill=(255, 255, 255, 255), font=font)
     else:
-        # Raster-scale fallback using default font: render then scale to ~4% of height
+        # Raster fallback: render then scale to ~30% of image width
         from PIL import ImageDraw, ImageFont
         try:
             tf = ImageFont.load_default()
@@ -211,8 +211,8 @@ def add_copyright_overlay(im: Image.Image, text: str) -> Image.Image:
                 ldr.text((ox + dx, oy + dy), text, fill=(0, 0, 0, 255), font=tf)
         ldr.text((ox, oy), text, fill=(255, 255, 255, 255), font=tf)
 
-        target_h = max(18, int(img_h * 0.04))
-        scale = target_h / max(1, th)
+        target_w = max(48, int(img_w * 0.30))
+        scale = target_w / max(1, (tw + 8))
         new_w = max(1, int((tw + 8) * scale))
         new_h = max(1, int((th + 8) * scale))
         layer_big = layer.resize((new_w, new_h), Image.LANCZOS)

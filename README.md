@@ -218,8 +218,8 @@ Or set it once in a config file:
 
 Notes:
 
-- The overlay uses a dark semi-transparent rectangle and white text with a black border for legibility.
-- Text size scales with image height (about 3.5% of height, clamped to a sensible range) after EXIF orientation.
+ - The overlay uses a dark semi-transparent rectangle and white text with a black border for legibility.
+ - Text width targets about 30% of the image width after EXIF orientation; padding and margins scale accordingly.
  - You can preview and iterate using `--save-prepared` to avoid posting during adjustments.
 - The default font is used to avoid external font dependencies.
 - If the overlay fails for any reason, the image is uploaded without the overlay.

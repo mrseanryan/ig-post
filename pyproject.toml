@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ig-post"
+version = "0.1.0"
+description = "Conservative CLI for posting selected JPG images to a personal Instagram account"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "instagrapi>=2.18.18,<3",
+]
+
+[project.scripts]
+ig-post = "ig_post:main"
+
+[tool.setuptools]
+py-modules = ["ig_post"]

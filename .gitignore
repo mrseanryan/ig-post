@@ -216,3 +216,29 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / credentials
+.env
+
+# Local ig-post runtime state
+session.json
+posted.json
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

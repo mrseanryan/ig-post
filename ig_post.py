@@ -146,9 +146,12 @@ def main() -> int:
     )
 
     parser.add_argument(
-        "--dry-run",
+        "--auto-post",
         action="store_true",
-        help="Show what would be posted without uploading anything",
+        help=(
+            "Actually upload to Instagram (WARNING: may trigger Instagram security checks). "
+            "Default behavior is non-posting preview."
+        ),
     )
 
     parser.add_argument(
@@ -170,20 +173,18 @@ def main() -> int:
     )
 
     parser.add_argument(
-        "--save-prepared",
-        metavar="DIR",
-        type=Path,
-        help=(
-            "Prepare images locally (EXIF orientation + optional overlay) and save to DIR. "
-            "Skips Instagram login and upload. Prints the saved paths."
-        ),
-    )
-
-    parser.add_argument(
         "--verbose",
         action="store_true",
         help=(
             "Print per-image details: full file path and generated text/caption"
+        ),
+    )
+
+    parser.add_argument(
+        "--mark-as-posted",
+        action="store_true",
+        help=(
+            "Do not upload, but record selected images as posted in the state file (assumes you post manually)."
         ),
     )
 
@@ -328,11 +329,71 @@ def main() -> int:
             (image, file_hash, None) for (image, file_hash) in pending
         ]
 
-    if args.dry_run and not args.save_prepared:
-        print()
-        print("DRY RUN — nothing will be uploaded.")
-        print()
+    print()
 
+    # Always prepare images locally into ./temp
+    out_dir = Path("./temp").resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Preparing images to: {out_dir}")
+
+    for image, file_hash, generated in pending_with_text:
+        rel = image.relative_to(directory)
+        dst = out_dir / (image.stem + ".prepared.jpg")
+        try:
+            saved = prepare_image_to_path(
+                image,
+                dst,
+                copyright_text=copyright_text,
+            )
+            print(f"  PREPARED  {rel} -> {saved}")
+            if args.verbose:
+                print(f"    Path:     {str(image.resolve())}")
+                print(f"    Saved:    {str(saved)}")
+                if generated:
+                    print(f"    Title:    {generated.get('title','')}")
+                    print(f"    Caption:  {generated.get('caption','')}")
+                    hashtags = generated.get("hashtags", [])
+                    if hashtags:
+                        hashtag_line = " ".join(f"#{t}" for t in hashtags[:IG_MAX_HASHTAGS])
+                        print(f"    Hashtags: {hashtag_line}")
+        except Exception as exc:
+            print(
+                f"Error: failed to prepare {rel}: {exc}",
+                file=sys.stderr,
+            )
+            return 1
+
+    # Conflict check: cannot both auto-post and mark-as-posted
+    if args.auto_post and args.mark_as_posted:
+        print(
+            "Error: --auto-post and --mark-as-posted are mutually exclusive.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Mark as posted without uploading
+    if args.mark_as_posted:
+        print("\nMarking images as posted in state file (no upload).")
+        for image, file_hash, generated in pending_with_text:
+            entry = {
+                "path": str(image),
+                "filename": image.name,
+                "instagram_id": "manual",
+                "posted_at": datetime.now().isoformat(timespec="seconds"),
+            }
+            if isinstance(generated, dict) and generated:
+                entry["generated_text"] = generated
+            state[file_hash] = entry
+        save_json(state_file, state)
+        print(f"Saved state: {state_file}")
+        print("Done. No uploads were performed.")
+        return 0
+
+    # Default: preview only unless --auto-post
+    if not args.auto_post:
+        print("\nPreview mode — no uploads performed.")
+        print("Use --auto-post to actually upload (WARNING: may trigger Instagram security checks).")
+        # Show summary of what would be posted
         for image, file_hash, generated in pending_with_text:
             rel = image.relative_to(directory)
             print(f"  WOULD POST  {rel} ({format_mtime(image)})")
@@ -348,44 +409,6 @@ def main() -> int:
                 if hashtags:
                     hashtag_line = " ".join(f"#{t}" for t in hashtags[:IG_MAX_HASHTAGS])
                     print(f"    Hashtags: {hashtag_line}")
-
-        return 0
-
-    print()
-
-    # If requested, only prepare images locally and exit
-    if args.save_prepared:
-        out_dir = args.save_prepared.expanduser().resolve()
-        out_dir.mkdir(parents=True, exist_ok=True)
-        print(f"Preparing images to: {out_dir}")
-
-        for image, file_hash, generated in pending_with_text:
-            rel = image.relative_to(directory)
-            dst = out_dir / (image.stem + ".prepared.jpg")
-            try:
-                saved = prepare_image_to_path(
-                    image,
-                    dst,
-                    copyright_text=copyright_text,
-                )
-                print(f"  PREPARED  {rel} -> {saved}")
-                if args.verbose:
-                    print(f"    Path:     {str(image.resolve())}")
-                    print(f"    Saved:    {str(saved)}")
-                    if generated:
-                        print(f"    Title:    {generated.get('title','')}")
-                        print(f"    Caption:  {generated.get('caption','')}")
-                        hashtags = generated.get("hashtags", [])
-                        if hashtags:
-                            hashtag_line = " ".join(f"#{t}" for t in hashtags[:IG_MAX_HASHTAGS])
-                            print(f"    Hashtags: {hashtag_line}")
-            except Exception as exc:
-                print(
-                    f"Error: failed to prepare {rel}: {exc}",
-                    file=sys.stderr,
-                )
-                return 1
-
         return 0
 
     try:

@@ -1,8 +1,8 @@
 # ig-post
 
-Small Python 3.12 CLI for posting selected JPGs from a directory to a personal Instagram account using `instagrapi` using AI generated captions and tags.
+Small Python 3.12 CLI for preparing and optionally posting selected JPGs from a directory to a personal Instagram account using `instagrapi`, with optional AI-generated captions and tags.
 
-> **WARNING** Misuse of this tool may cause Instagram to lock down your account.
+> WARNING: Uploading via private API can trigger Instagram security checks. By default this tool does not upload; use `--auto-post` only if you accept that risk.
 
 > **Important:** `instagrapi` uses Instagram's unofficial/private API. This project is intended for low-volume, personal automation. It is deliberately conservative about posting frequency and stops rather than aggressively retrying when Instagram throttles or challenges the client.
 
@@ -13,12 +13,15 @@ Given a directory, `ig-post`:
 1. Finds `.jpg` files whose names start with a configurable prefix.
 2. Sorts them by file modification time, oldest first.
 3. Uses SHA-256 hashes to remember images already posted.
-4. Optionally uses AI (OpenAI) to generate suitable tags and captions.
-5. Posts at most **3 images per run** by default.
-6. Waits at least **2 minutes between images** by default, with a small random addition.
-7. Generates the caption from the directory name, replacing `_` with spaces.
-8. Records each successful upload immediately, so an interrupted run resumes safely.
-9. Persists the Instagram session in `~/.config/ig-post/session.json`.
+4. Optionally uses AI (OpenAI) to generate suitable titles, captions and hashtags.
+5. Always prepares oriented images (EXIF-aware) with optional copyright overlay into `./temp` for review.
+6. Does not upload by default; uploading is opt-in via `--auto-post`.
+7. Can mark images as posted without uploading via `--mark-as-posted` for manual posting workflows.
+8. Posts at most **3 images per run** by default when uploading.
+9. Waits at least **2 minutes between images** by default when uploading, with a small random addition.
+10. Generates the base caption from the directory name, replacing `_` with spaces.
+11. Records each successful upload immediately, so an interrupted run resumes safely.
+12. Persists the Instagram session in `~/.config/ig-post/session.json`.
 
 Example:
 
@@ -42,6 +45,34 @@ Summer holiday 2026
 ```
 
 Only `cover*.jpg` files are considered, and only the oldest three unposted images are selected.
+
+### Example Output
+
+```
+Already posted: 13
+Pending:        11
+Selected:       3
+Generating text via OpenAI for: Transfagarasan_via_Poenari_Citadel_and_Balea_Lake\9-Transfagarasan_North\cover.SA709810.ok.JPG
+Generating text via OpenAI for: Transfagarasan_via_Poenari_Citadel_and_Balea_Lake\4-Poenari_Citadel\cover.SA709649.ok.JPG
+
+Preparing images to: C:\tools\ig-post\ig-post\temp
+  PREPARED  Transfagarasan_via_Poenari_Citadel_and_Balea_Lake\9-Transfagarasan_North\cover.SA709810.ok.JPG -> C:\tools\ig-post\ig-post\temp\cover.SA709810.ok.prepared.jpg
+    Path:     c:\galleries\2026-07_-_Transylvania_Romania\Transfagarasan_via_Poenari_Citadel_and_Balea_Lake\9-Transfagarasan_North\cover.SA709810.ok.JPG
+    Saved:    C:\tools\ig-post\ig-post\temp\cover.SA709810.ok.prepared.jpg
+    Title:    Road Through Transylvanian Mountains
+    Caption:  A serene landscape unfolding beneath a clear sky. The mountains stand tall, inviting exploration.
+    Hashtags: #transylvania #romania #landscapephotography #mountainview #roadtrip #naturelovers #scenicroute #outdoorphotography #travelphotography #adventure
+  PREPARED  Transfagarasan_via_Poenari_Citadel_and_Balea_Lake\3-Lowland_Rivers\cover.SA709632.edit.editted.jpg -> C:\tools\ig-post\ig-post\temp\cover.SA709632.edit.editted.prepared.jpg
+    Path:     c:\galleries\2026-07_-_Transylvania_Romania\Transfagarasan_via_Poenari_Citadel_and_Balea_Lake\3-Lowland_Rivers\cover.SA709632.edit.editted.jpg
+    Saved:    C:\tools\ig-post\ig-post\temp\cover.SA709632.edit.editted.prepared.jpg
+    Title:    Serenity in Transylvania's Landscape
+    Caption:  A tranquil river winds through the lush greenery of Transylvania. The clear skies and vibrant colors evoke a sense of peace.
+    Hashtags: #transylvania #landscapephotography #naturephotography #river #greenery #scenicview #outdoorphotography #romania #peaceful #explore
+
+Marking images as posted in state file (no upload).
+Saved state: c:\galleries\ig-posted.json
+Done. No uploads were performed.
+```
 
 ## Requirements
 
@@ -128,46 +159,19 @@ holiday-old.jpg
 
 Matching is case-insensitive.
 
-### Dry run
+### Default: Preview (No Posting)
 
-Always useful before the first real run:
-
-```bash
-ig-post /path/to/directory --dry-run
-```
-
-This shows the files that would be selected without logging into Instagram or uploading anything.
+By default, the tool does not upload anything. It previews what would be posted, prepares oriented images with optional overlay, and writes them to `./temp`.
 
 Use `--verbose` to show full paths and, when `--generate-text` is enabled, the generated title/caption/hashtags per selected image:
 
 ```bash
-ig-post /path/to/directory --dry-run --generate-text --verbose
+ig-post /path/to/directory --generate-text --verbose
 ```
 
-### Prepare Images Only (no posting)
+### Prepared Images
 
-If you want to preview how images will look after EXIF orientation and the optional copyright overlay, save the prepared JPEGs locally and skip posting:
-
-```bash
-ig-post /path/to/directory --save-prepared ./out
-```
-
-With overlay:
-
-```bash
-ig-post /path/to/directory --save-prepared ./out \
-  --copyright "© 2026 Your Name"
-```
-
-Behavior:
-
-- Applies EXIF orientation first
-- Applies the optional copyright overlay next
-- Writes prepared files as `<original>.prepared.jpg` into the target directory
-- Prints the saved file paths
-- Skips Instagram login and upload entirely
-
-Add `--verbose` to print both the original and saved file paths and, when text generation is enabled, the generated title/caption/hashtags for each prepared image.
+The tool always prepares images locally (EXIF orientation + optional copyright overlay) and writes them to `./temp` as `<original>.prepared.jpg`. Paths are printed; add `--verbose` to also print the original path and generated text details when enabled.
 
 ### Generate Title/Caption/Hashtags (optional)
 
@@ -209,7 +213,7 @@ Notes:
 
 ### Copyright Overlay (optional)
 
-Add a small copyright mark at the bottom-right of each image during upload. The overlay is applied after EXIF orientation, saved into a temporary JPEG, and then uploaded.
+Add a small copyright mark at the bottom-right of each image. The overlay is applied after EXIF orientation and saved into `./temp` as a prepared JPEG. If you choose to upload, those prepared images are used.
 
 Usage (CLI override):
 
@@ -228,9 +232,9 @@ Or set it once in a config file:
 
 Notes:
 
- - The overlay uses a dark semi-transparent rectangle and white text with a black border for legibility.
- - Text width targets about 30% of the image width after EXIF orientation; padding and margins scale accordingly.
- - You can preview and iterate using `--save-prepared` to avoid posting during adjustments.
+  - The overlay uses a dark semi-transparent rectangle and white text with a black border for legibility.
+  - Text width targets about 30% of the image width after EXIF orientation; padding and margins scale accordingly.
+  - You can safely iterate since prepared images are always written to `./temp` and posting is opt-in.
 - The default font is used to avoid external font dependencies.
 - If the overlay fails for any reason, the image is uploaded without the overlay.
 
@@ -267,6 +271,24 @@ min_delay ... min_delay + 25%
 So the default is approximately 120–150 seconds.
 
 The delay is only inserted between posts, not after the final post.
+
+## Posting
+
+Uploading is opt-in and may trigger Instagram security checks. Proceed cautiously.
+
+```bash
+ig-post /path/to/directory --auto-post
+```
+
+### Mark As Posted (manual posting)
+
+If you prefer to post manually but still want the tool to remember the images as posted, use:
+
+```bash
+ig-post /path/to/directory --mark-as-posted
+```
+
+This adds the selected images to the state file without uploading anything. Combine with `--generate-text` and `--verbose` to see suggested text while you post manually.
 
 ## State
 
@@ -385,13 +407,13 @@ The runtime files are intentionally stored outside the project:
 Run directly:
 
 ```bash
-python ig-post.py /path/to/directory --dry-run
+python ig-post.py /path/to/directory
 ```
 
 Or after installation:
 
 ```bash
-ig-post /path/to/directory --dry-run
+ig-post /path/to/directory
 ```
 
 Check the CLI help:
@@ -420,4 +442,4 @@ If you use environment variables for credentials, remember that shell history an
 
 ## Image Orientation (EXIF)
 
-Some photos carry an EXIF orientation flag instead of being physically rotated. The tool auto-applies EXIF orientation before upload, writing a temporary JPEG to ensure correct on-platform rotation. If the copyright overlay is enabled, it is applied after orientation.
+Some photos carry an EXIF orientation flag instead of being physically rotated. The tool auto-applies EXIF orientation and writes prepared JPEGs into `./temp`. If the copyright overlay is enabled, it is applied after orientation. If you later choose to upload with `--auto-post`, the prepared images are used.

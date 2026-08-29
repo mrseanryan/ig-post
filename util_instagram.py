@@ -132,6 +132,7 @@ def post_images(
     pending: list[tuple[Path, str, Optional[dict]]],
     default_caption: str,
     state: dict,
+    state_file: Path,
     min_delay: float,
     verbose: bool = False,
     copyright_text: Optional[str] = None,
@@ -257,7 +258,7 @@ def post_images(
 
         state[file_hash] = entry
 
-        save_json(STATE_FILE, state)
+        save_json(state_file, state)
 
         posted_count += 1
 

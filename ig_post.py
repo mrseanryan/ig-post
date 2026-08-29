@@ -89,6 +89,20 @@ DEFAULT_MAX_IMAGES = 3
 DEFAULT_MIN_DELAY = 120.0
 
 
+def _normalize_config_path(p: str) -> Path:
+    """Normalize a config-provided path across platforms.
+
+    On Windows, also support Git Bash/MSYS style paths like '/d/some/path/file.json'
+    by converting them to 'D:/some/path/file.json'.
+    """
+    s = os.path.expanduser(str(p))
+    if os.name == "nt" and len(s) >= 4 and s[0] == "/" and s[2] == "/" and s[1].isalpha():
+        drive = s[1].upper()
+        rest = s[3:]
+        s = f"{drive}:/{rest}"
+    return Path(s).resolve()
+
+
 
 
 def main() -> int:
@@ -219,13 +233,26 @@ def main() -> int:
 
     base_caption = caption_from_directory(directory)
 
-    state = load_json(
-        STATE_FILE,
-        {},
-    )
-
     # Load optional runtime config
     config = load_json(CONFIG_FILE, {})
+
+    # Resolve state file location (overridable via config)
+    state_file: Path
+    cfg_state_path = config.get("posted_state_path") if isinstance(config, dict) else None
+    if cfg_state_path:
+        state_file = _normalize_config_path(str(cfg_state_path))
+        if not state_file.exists():
+            print(
+                f"Error: configured posted_state_path does not exist: {state_file}",
+                file=sys.stderr,
+            )
+            print("Create the file or remove/adjust 'posted_state_path' in config.")
+            return 1
+    else:
+        state_file = STATE_FILE
+
+    state = load_json(state_file, {})
+
     copyright_text = (
         args.copyright
         if args.copyright is not None
@@ -238,6 +265,10 @@ def main() -> int:
     print(f"Caption:       {base_caption}")
     print(f"Run limit:     {args.max_images} image(s)")
     print(f"Minimum delay: {args.min_delay:.0f} seconds")
+    try:
+        print(f"State file:    {str(state_file)}")
+    except Exception:
+        pass
     print()
 
     print(
@@ -373,6 +404,7 @@ def main() -> int:
         pending=pending_with_text,
         default_caption=base_caption,
         state=state,
+        state_file=state_file,
         min_delay=args.min_delay,
         verbose=args.verbose,
         copyright_text=copyright_text,

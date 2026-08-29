@@ -268,7 +268,7 @@ The delay is only inserted between posts, not after the final post.
 
 ## State
 
-Posted-image state is stored in:
+Posted-image state is stored by default in:
 
 ```text
 ~/.config/ig-post/posted.json
@@ -282,7 +282,16 @@ This means:
 - Replacing an image with different contents allows the replacement to be posted.
 - Each successful upload is saved immediately.
 
-You can inspect the state:
+You can override the state file path via config:
+
+```jsonc
+// ~/.config/ig-post/config.json
+{
+  "posted_state_path": "/absolute/or/relative/path/to/posted.json"
+}
+```
+
+Relative paths are resolved from the current working directory. On Windows, Git Bash/MSYS-style drive paths like `/d/dir/file.json` are also accepted and normalized to `D:/dir/file.json`. If `posted_state_path` is set but the file does not exist, the tool exits with an error (it will not create a new file at a custom path). Create the file first or remove the override. You can inspect the state file:
 
 ```bash
 cat ~/.config/ig-post/posted.json

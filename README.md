@@ -2,6 +2,8 @@
 
 Small Python 3.12 CLI for posting selected JPGs from a directory to a personal Instagram account using `instagrapi` using AI generated captions and tags.
 
+> **WARNING** Misuse of this tool may cause Instagram to lock down your account.
+
 > **Important:** `instagrapi` uses Instagram's unofficial/private API. This project is intended for low-volume, personal automation. It is deliberately conservative about posting frequency and stops rather than aggressively retrying when Instagram throttles or challenges the client.
 
 ## What it does

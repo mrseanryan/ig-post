@@ -52,7 +52,7 @@ def caption_from_directory(directory: Path) -> str:
     return directory.name.replace("_", " ")
 
 
-def find_images(directory: Path, prefix: str) -> list[Path]:
+def find_images(directory: Path, prefix: Optional[str]) -> list[Path]:
     """
     Recursively find JPG files beginning with the requested prefix.
 
@@ -60,17 +60,23 @@ def find_images(directory: Path, prefix: str) -> list[Path]:
 
     Results are sorted by modification time, oldest first.
     """
-    prefix_lower = prefix.lower()
-
-    images = [
-        path
-        for path in directory.rglob("*")
-        if (
-            path.is_file()
-            and path.name.lower().startswith(prefix_lower)
-            and path.suffix.lower() == ".jpg"
-        )
-    ]
+    if not prefix:
+        images = [
+            path
+            for path in directory.rglob("*")
+            if path.is_file() and path.suffix.lower() == ".jpg"
+        ]
+    else:
+        prefix_lower = prefix.lower()
+        images = [
+            path
+            for path in directory.rglob("*")
+            if (
+                path.is_file()
+                and path.name.lower().startswith(prefix_lower)
+                and path.suffix.lower() == ".jpg"
+            )
+        ]
 
     # Oldest first.
     images.sort(key=lambda path: path.stat().st_mtime)
@@ -121,8 +127,10 @@ def main() -> int:
 
     parser.add_argument(
         "--prefix",
-        default="cover",
-        help="Filename prefix to match (default: cover)",
+        default=None,
+        help=(
+            "Filename prefix to match. If omitted, all .jpg files are considered."
+        ),
     )
 
     parser.add_argument(
@@ -199,12 +207,7 @@ def main() -> int:
         )
         return 1
 
-    if not args.prefix:
-        print(
-            "Error: --prefix cannot be empty.",
-            file=sys.stderr,
-        )
-        return 1
+    # Empty/omitted prefix means match all JPGs
 
     if args.max_images < 1:
         print(
@@ -226,10 +229,10 @@ def main() -> int:
     )
 
     if not images:
-        print(
-            f"No JPG files starting with "
-            f"'{args.prefix}' found."
-        )
+        if args.prefix:
+            print(f"No JPG files starting with '{args.prefix}' found.")
+        else:
+            print("No JPG files found.")
         return 0
 
     base_caption = caption_from_directory(directory)
@@ -262,7 +265,8 @@ def main() -> int:
 
     print()
     print(f"Directory:     {directory}")
-    print(f"Prefix:        {args.prefix}")
+    prefix_display = args.prefix if args.prefix else "(none — all .jpg)"
+    print(f"Prefix:        {prefix_display}")
     print(f"Caption:       {base_caption}")
     print(f"Run limit:     {args.max_images} image(s)")
     print(f"Minimum delay: {args.min_delay:.0f} seconds")

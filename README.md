@@ -143,7 +143,7 @@ Basic:
 ig-post /path/to/directory
 ```
 
-Use another filename prefix:
+Use a filename prefix (optional):
 
 ```bash
 ig-post /path/to/directory --prefix holiday
@@ -157,7 +157,7 @@ holiday02.jpg
 holiday-old.jpg
 ```
 
-Matching is case-insensitive.
+Matching is case-insensitive. If you omit `--prefix`, all `.jpg` files are considered.
 
 ### Default: Preview (No Posting)
 

@@ -11,11 +11,17 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "instagrapi>=2.18.18,<3",
     "openai>=1.30,<2",
-    "pillow>=10,<12",
+    # Align with instagrapi which requires Pillow>=12.2.0,<13
+    "pillow>=12.2.0,<13",
 ]
 
 [project.scripts]
 ig-post = "ig_post:main"
 
 [tool.setuptools]
-py-modules = ["ig_post"]
+py-modules = [
+    "ig_post",
+    "util_instagram",
+    "util_image",
+    "util_gen_text",
+]

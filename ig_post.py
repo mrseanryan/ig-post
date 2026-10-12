@@ -121,7 +121,7 @@ def main() -> int:
 
     parser.add_argument(
         "directory",
-        type=Path,
+        type=str,
         help="Directory to recursively search",
     )
 
@@ -198,7 +198,8 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    directory = args.directory.expanduser().resolve()
+    # Accept both native Windows paths and Git Bash/MSYS style paths like '/c/...'
+    directory = _normalize_config_path(args.directory)
 
     if not directory.is_dir():
         print(

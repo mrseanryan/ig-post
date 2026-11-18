@@ -1,6 +1,6 @@
 # ig-post
 
-Small Python 3.12 CLI for preparing and optionally posting selected JPGs from a directory to a personal Instagram account using `instagrapi`, with optional AI-generated captions and tags.
+Small Python 3.12 CLI for preparing and optionally posting selected JPGs from a directory or a single JPG image file to a personal Instagram account using `instagrapi`, with optional AI-generated captions and tags.
 
 > WARNING: Uploading via private API can trigger Instagram security checks. By default this tool does not upload; use `--auto-post` only if you accept that risk.
 
@@ -8,7 +8,7 @@ Small Python 3.12 CLI for preparing and optionally posting selected JPGs from a 
 
 ## What it does
 
-Given a directory, `ig-post`:
+Given a directory or a single JPG image, `ig-post`:
 
 1. Finds `.jpg` files whose names start with a configurable prefix.
 2. Sorts them by file modification time, oldest first.
@@ -148,6 +148,14 @@ Use a filename prefix (optional):
 ```bash
 ig-post /path/to/directory --prefix holiday
 ```
+
+To process exactly one image instead of searching a directory:
+
+```bash
+ig-post /path/to/photo.jpg
+```
+
+For a single image, `--prefix` is ignored. The default caption is based on the image's parent directory name.
 
 For example, `--prefix holiday` matches:
 

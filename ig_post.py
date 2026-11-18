@@ -115,14 +115,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Post previously-unposted JPG images "
-            "from a directory to Instagram."
+            "from a directory or a single image to Instagram."
         )
     )
 
     parser.add_argument(
-        "directory",
+        "path",
         type=str,
-        help="Directory to recursively search",
+        help="Directory to recursively search, or a single JPG image to process",
     )
 
     parser.add_argument(
@@ -199,11 +199,19 @@ def main() -> int:
     args = parser.parse_args()
 
     # Accept both native Windows paths and Git Bash/MSYS style paths like '/c/...'
-    directory = _normalize_config_path(args.directory)
+    input_path = _normalize_config_path(args.path)
 
-    if not directory.is_dir():
+    if input_path.is_dir():
+        directory = input_path
+        images = find_images(directory, args.prefix)
+        input_label = "Directory"
+    elif input_path.is_file() and input_path.suffix.lower() == ".jpg":
+        directory = input_path.parent
+        images = [input_path]
+        input_label = "Image"
+    else:
         print(
-            f"Error: not a directory: {directory}",
+            f"Error: expected a directory or a JPG image file: {input_path}",
             file=sys.stderr,
         )
         return 1
@@ -223,11 +231,6 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
-
-    images = find_images(
-        directory,
-        args.prefix,
-    )
 
     if not images:
         if args.prefix:
@@ -265,8 +268,11 @@ def main() -> int:
     )
 
     print()
-    print(f"Directory:     {directory}")
-    prefix_display = args.prefix if args.prefix else "(none — all .jpg)"
+    print(f"{input_label}:     {input_path}")
+    if input_label == "Image":
+        prefix_display = "(ignored for a single image)"
+    else:
+        prefix_display = args.prefix if args.prefix else "(none — all .jpg)"
     print(f"Prefix:        {prefix_display}")
     print(f"Caption:       {base_caption}")
     print(f"Run limit:     {args.max_images} image(s)")
@@ -277,9 +283,8 @@ def main() -> int:
         pass
     print()
 
-    print(
-        f"Found {len(images)} matching image(s) recursively"
-    )
+    found_detail = "" if input_label == "Image" else " recursively"
+    print(f"Found {len(images)} matching image(s){found_detail}")
     print()
 
     pending: list[tuple[Path, str]] = []
